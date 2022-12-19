@@ -60,9 +60,13 @@ def convertToCsv():
     for i in range(len(jsonData)):
         number=float(jsonData[i]['DT'])
         homePrices.append(round(number))
+        homePrices.append(round(number))
+        homePrices.append(round(number))
     jsonData = getHomePriceSecond()
     for i in range(len(jsonData)):
         number =float(jsonData[i]['DT'])
+        homePrices.append(round(number))
+        homePrices.append(round(number))
         homePrices.append(round(number))
 
     # 파일저장 2 : csv 파일
@@ -121,10 +125,13 @@ def interest_address():
 
         if(case_year >= 2009 and case_year <= 2013):
             firstResult.append(['09~13', case_year, case_rate])
-
+            firstResult.append(['09~13', case_year, case_rate])
+            firstResult.append(['09~13', case_year, case_rate])
 
 
         elif(case_year > 2013 and case_year <= 2019):
+            secondResult.append(['14~19', case_year, case_rate])
+            secondResult.append(['14~19', case_year, case_rate])
             secondResult.append(['14~19', case_year, case_rate])
 
 
@@ -197,6 +204,20 @@ def calc(yearRate, yearGDP, yearHousingSupply, homePrice):
 
     sample2_predict = regression_result.predict(sample2)
     print(sample2_predict)
+
+
+
+
+
+
+    # 시각화 (부분 회귀 플롯 2개)
+    others = list(set(info.columns).difference(set(["HomePrice", "GDP"])))
+    p, resids = sm.graphics.plot_partregress("HomePrice", "GDP", others, data=info, ret_coords=True)
+    plt.show()
+
+    fig = plt.figure(figsize=(6, 8))
+    sm.graphics.plot_partregress_grid(regression_result, fig=fig)
+    plt.show()
 
 def main():
     homePrice=getHomePrice()
