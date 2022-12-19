@@ -3,11 +3,16 @@ from statsmodels.formula.api import ols, glm
 import urllib.request
 import json
 import pandas as pd
-
+from bs4 import BeautifulSoup
 #시각화
 import matplotlib.pyplot as plt
 import seaborn as sns
 import statsmodels.api as sm
+import urllib.request
+import datetime
+
+
+import ssl
 
 
 ServiceKey = "Unrj3C%2B1Q7LoxSlJVzf81Xe9bVu4Ll3H91Fgx11%2BYTGi3NP2KrqOJLfEAN025uQiKMW1reyLfOeKKeJDOg68PA%3D%3D"
@@ -73,8 +78,69 @@ def getHomePrice():
     convertToCsv()
     return pd.read_csv('homePrice.csv', encoding='cp949')
 
+
+def get_request_url(url, enc='utf-8'):
+    req = urllib.request.Request(url)
+
+    try:
+        ssl.create_default_https_context = ssl._create_unverified_context  # 접속보안 허용
+
+        response = urllib.request.urlopen(req)
+        if response.getcode() == 200:  # 성공시
+            try:
+                rcv = response.read()
+                ret = rcv.decode(enc)
+            except UnicodeDecodeError:
+                ret = rcv.decode(enc, 'replace')
+
+            return ret
+
+    except Exception as e:
+        print(e)
+        print("[%s] Error for URL : %s" % (datetime.datetime.now(), url))
+        return None
+
+
+def interest_address():
+    firstResult = []
+    secondResult = []
+    base_rate_url = 'https://www.bok.or.kr/portal/singl/baseRate/list.do?dataSeCd=01&menuNo=200643'
+
+    rcv_data = get_request_url(base_rate_url)
+    soupData = BeautifulSoup(rcv_data, 'html.parser')
+    tag_tbody = soupData.find('tbody')
+
+    tmp=[]
+    for case in reversed(tag_tbody.find_all('tr')):
+        case_td = case.find_all('td')
+        case_year = int(case_td[0].string)
+        case_rate = float(case_td[2].string)
+        if (case_year in tmp) :
+            continue
+        tmp.append(case_year)
+
+        if(case_year >= 2009 and case_year <= 2013):
+            firstResult.append(['09~13', case_year, case_rate])
+
+
+
+        elif(case_year > 2013 and case_year <= 2019):
+            secondResult.append(['14~19', case_year, case_rate])
+
+
+    return [firstResult, secondResult]
+
 def getYearRate():
-    return pd.read_csv('yearRate.csv')
+    [firstResult, secondResult] = interest_address()
+    firstInterest = pd.DataFrame(firstResult, columns=('classify', 'year', 'rate'))
+    firstInterest.to_csv('firstInterest.csv', encoding='cp949', mode='w', index=False)
+    secondResult = pd.DataFrame(secondResult, columns=('classify', 'year', 'rate'))
+    secondResult.to_csv('secondInterest.csv', encoding='cp949', mode='w', index=False)
+
+    rate = pd.concat([firstInterest, secondResult])
+    rate.to_csv('rate.csv', encoding='cp949', mode='w', index=False)
+
+    return pd.read_csv('rate.csv', encoding='cp949')
 
 def getYearGDP():
     return pd.read_csv('yearGDP.csv', encoding='cp949')
@@ -105,32 +171,32 @@ def calc(yearRate, yearGDP, yearHousingSupply, homePrice):
 
     info = pd.read_csv('info.csv', encoding='cp949')
 
+    print(info.describe())
 
-    housePrice = info['HomePrice']
+    firstClassify = info.loc[info['classify'] == '09~13', 'HomePrice']
+    secondClassify = info.loc[info['classify'] == '14~19', 'HomePrice']
 
-    stats.ttest_ind(housePrice, housePrice, equal_var=False)
+    stats.ttest_ind(firstClassify, secondClassify, equal_var=False)
 
     Rformula = 'HomePrice ~ rate + GDP + EconomicGrowth +households + house + HousingSupply'
 
     regression_result = ols(Rformula, data=info).fit()
     print(regression_result.summary())
 
-    sample1 = info[info.columns.difference(['HomePrice'])]
+    sample1 = info[info.columns.difference(['HomePrice','classify'])]
     sample1 = sample1[0:5][:]
     sample1_predict = regression_result.predict(sample1)
-    # print(sample1_predict)
-    #
-    # print(info[0:5]['HomePrice'])
+    print(sample1_predict)
 
-    data = {"rate": [2.4, 2.1], "GDP": [1205, 1500], "EconomicGrowth": [7.3, 7.1], "households": [3243, 3921],
-            "house": [4023, 2999], "HousingSupply": [93.2, 96.3]}
+    print(info[0:5]['HomePrice'])
+
+    data = {"year": [2012, 2013], "rate": [1.77, 1.35], "GDP": [1654, 1739], "EconomicGrowth": [2.8, 2.9],"households": [3783, 3785],"house": [3634, 3643], "HousingSupply": [95, 96.1]}
 
     sample2 = pd.DataFrame(data, columns=sample1.columns)
     print(sample2)
 
     sample2_predict = regression_result.predict(sample2)
     print(sample2_predict)
-
 
 def main():
     homePrice=getHomePrice()
