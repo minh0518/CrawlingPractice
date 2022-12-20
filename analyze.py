@@ -4,9 +4,9 @@ import urllib.request
 import json
 import pandas as pd
 from bs4 import BeautifulSoup
+
 #시각화
 import matplotlib.pyplot as plt
-import seaborn as sns
 import statsmodels.api as sm
 import urllib.request
 import datetime
@@ -162,17 +162,17 @@ def calc(yearRate, yearGDP, yearHousingSupply, homePrice):
     info = pd.concat([yearRate, yearGDP, yearHousingSupply, homePrice], axis=1)
 
     # 숫자 변환
-    householdsData = info['households']
+    householdsData = info['Households']
     for i in householdsData.index:
-        str = info['households'][i]
+        str = info['Households'][i]
         traget = str.replace(',', '')
-        info.at[i, 'households'] = int(traget)
+        info.at[i, 'Households'] = int(traget)
 
-    houseData = info['house']
+    houseData = info['Houses']
     for i in houseData.index:
-        str = info['house'][i]
+        str = info['Houses'][i]
         traget = str.replace(',', '')
-        info.at[i, 'house'] = int(traget)
+        info.at[i, 'Houses'] = int(traget)
 
     info.to_csv('info.csv', index=False, encoding='cp949')
 
@@ -180,16 +180,19 @@ def calc(yearRate, yearGDP, yearHousingSupply, homePrice):
 
     print(info.describe())
 
+    #t-검정을 위한 그룹 분류
     firstClassify = info.loc[info['classify'] == '09~13', 'HomePrice']
     secondClassify = info.loc[info['classify'] == '14~19', 'HomePrice']
 
     stats.ttest_ind(firstClassify, secondClassify, equal_var=False)
 
-    Rformula = 'HomePrice ~ rate + GDP + EconomicGrowth +households + house + HousingSupply'
+    Rformula = 'HomePrice ~ rate + GDP + EconomicGrowth +Households + Houses + HousingSupply'
 
     regression_result = ols(Rformula, data=info).fit()
     print(regression_result.summary())
 
+
+    #회귀분석 모델로 새로운 집값 예측
     sample1 = info[info.columns.difference(['HomePrice','classify'])]
     sample1 = sample1[0:5][:]
     sample1_predict = regression_result.predict(sample1)
@@ -197,7 +200,8 @@ def calc(yearRate, yearGDP, yearHousingSupply, homePrice):
 
     print(info[0:5]['HomePrice'])
 
-    data = {"year": [2012, 2013], "rate": [1.77, 1.35], "GDP": [1654, 1739], "EconomicGrowth": [2.8, 2.9],"households": [3783, 3785],"house": [3634, 3643], "HousingSupply": [95, 96.1]}
+    #예측에 사용되는 임의 데이터
+    data = {"year": [2025, 2026], "rate": [1.55, 1.52], "GDP": [1924498.1, 1924428.7], "EconomicGrowth": [2.7,2.6],"Households": [3832, 3855],"Houses": [3732, 3739], "HousingSupply": [96,98]}
 
     sample2 = pd.DataFrame(data, columns=sample1.columns)
     print(sample2)
@@ -209,12 +213,14 @@ def calc(yearRate, yearGDP, yearHousingSupply, homePrice):
 
 
 def visualize(info,regression_result):
-    # 시각화 (부분 회귀 플롯 2개)
+    # 시각화
+
+    #부분 회귀 플롯
     others = list(set(info.columns).difference(set(["HomePrice", "GDP"])))
     p, resids = sm.graphics.plot_partregress("HomePrice", "GDP", others, data=info, ret_coords=True)
     plt.show()
 
-
+    #모든 x값(경제성장률, 주택 보급률 , 금리 등...)에 대한 부분 회귀 플롯
     fig = plt.figure(figsize=(6, 8))
     sm.graphics.plot_partregress_grid(regression_result, fig=fig)
     plt.show()
@@ -222,11 +228,23 @@ def visualize(info,regression_result):
 
 
 def main():
+
+    #집값 [단위 : 백만] (ex 114 : 11.4억원)
     homePrice=getHomePrice()
+
+    #연도별 금리 [단위:%]
     yearRate=getYearRate()
+
+    # GDP,전년 대비 경제성장률 [단위 : 십억원, 전년동기 대비 %]
     yearGDP = getYearGDP()
+
+    #가구수(Households) , 주택수(Houses) , 주택 보급률(HousingSupply) [단위 : 천, 천, %]
     yearHousingSupply =getYearHousingSupply()
+    
+    #09~13년 , 14~19 년 2개의 그룹으로 나눠서 t-검정 및 회귀분석
     [info,regression_result]=calc(yearRate, yearGDP, yearHousingSupply, homePrice)
+    
+    #시각화
     visualize(info,regression_result)
 
 
