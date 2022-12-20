@@ -5,20 +5,15 @@ import json
 import pandas as pd
 from bs4 import BeautifulSoup
 
-#시각화
+# 시각화
 import matplotlib.pyplot as plt
 import statsmodels.api as sm
 import urllib.request
 import datetime
 
-
 import ssl
 
-
 ServiceKey = "Unrj3C%2B1Q7LoxSlJVzf81Xe9bVu4Ll3H91Fgx11%2BYTGi3NP2KrqOJLfEAN025uQiKMW1reyLfOeKKeJDOg68PA%3D%3D"
-
-
-
 
 
 def getHomePriceFirst():
@@ -35,7 +30,6 @@ def getHomePriceFirst():
         print(e)
         # print("[%s] Error for URL : %s" % (datetime.datetime.now(), url))
         return None
-
 
 
 def getHomePriceSecond():
@@ -55,25 +49,19 @@ def getHomePriceSecond():
 
 
 def convertToCsv():
-    homePrices=[]
+    homePrices = []
     jsonData = getHomePriceFirst()
     for i in range(len(jsonData)):
-        number=float(jsonData[i]['DT'])
-        # homePrices.append(round(number))
-        # homePrices.append(round(number))
-        # homePrices.append(round(number))
+        number = float(jsonData[i]['DT'])
         homePrices.append(number)
-        homePrices.append(number+0.1)
-        homePrices.append(number-0.1)
+        homePrices.append(number + 0.1)
+        homePrices.append(number - 0.1)
     jsonData = getHomePriceSecond()
     for i in range(len(jsonData)):
-        number =float(jsonData[i]['DT'])
-        # homePrices.append(round(number))
-        # homePrices.append(round(number))
-        # homePrices.append(round(number))
+        number = float(jsonData[i]['DT'])
         homePrices.append(number)
-        homePrices.append(number+0.1)
-        homePrices.append(number-0.1)
+        homePrices.append(number + 0.1)
+        homePrices.append(number - 0.1)
 
     # 파일저장 2 : csv 파일
     columns = ["HomePrice"]
@@ -120,40 +108,39 @@ def interest_address():
     soupData = BeautifulSoup(rcv_data, 'html.parser')
     tag_tbody = soupData.find('tbody')
 
-    tmp=[]
+    tmp = []
     for case in reversed(tag_tbody.find_all('tr')):
         case_td = case.find_all('td')
         case_year = int(case_td[0].string)
         case_rate = float(case_td[2].string)
-        if (case_year in tmp) :
+        if (case_year in tmp):
             continue
         tmp.append(case_year)
 
-        if(case_year >= 2009 and case_year <= 2013):
+        if (case_year >= 2009 and case_year <= 2013):
             firstResult.append(['09~13', case_year, case_rate])
-            firstResult.append(['09~13', case_year, case_rate-0.05])
-            firstResult.append(['09~13', case_year, case_rate+0.05])
+            firstResult.append(['09~13', case_year, case_rate - 0.05])
+            firstResult.append(['09~13', case_year, case_rate + 0.05])
 
 
-        elif(case_year > 2013 and case_year <= 2019):
+        elif (case_year > 2013 and case_year <= 2019):
             secondResult.append(['14~19', case_year, case_rate])
-            secondResult.append(['14~19', case_year, case_rate-0.05])
-            secondResult.append(['14~19', case_year, case_rate+0.05])
-
+            secondResult.append(['14~19', case_year, case_rate - 0.05])
+            secondResult.append(['14~19', case_year, case_rate + 0.05])
 
     return [firstResult, secondResult]
+
 
 def getYearRate():
     [firstResult, secondResult] = interest_address()
     firstInterest = pd.DataFrame(firstResult, columns=('classify', 'year', 'rate'))
-    firstInterest.to_csv('firstInterest.csv', encoding='cp949', mode='w', index=False)
     secondResult = pd.DataFrame(secondResult, columns=('classify', 'year', 'rate'))
-    secondResult.to_csv('secondInterest.csv', encoding='cp949', mode='w', index=False)
 
     rate = pd.concat([firstInterest, secondResult])
     rate.to_csv('rate.csv', encoding='cp949', mode='w', index=False)
 
     return pd.read_csv('rate.csv', encoding='cp949')
+
 
 def getYearGDP():
     return pd.read_csv('yearGDP.csv', encoding='cp949')
@@ -163,7 +150,7 @@ def getYearHousingSupply():
     return pd.read_csv('yearHousingSupply.csv')
 
 
-#분석
+# 분석
 def calc(yearRate, yearGDP, yearHousingSupply, homePrice):
     info = pd.concat([yearRate, yearGDP, yearHousingSupply, homePrice], axis=1)
 
@@ -186,7 +173,7 @@ def calc(yearRate, yearGDP, yearHousingSupply, homePrice):
 
     print(info.describe())
 
-    #t-검정을 위한 그룹 분류
+    # t-검정을 위한 그룹 분류
     firstClassify = info.loc[info['classify'] == '09~13', 'HomePrice']
     secondClassify = info.loc[info['classify'] == '14~19', 'HomePrice']
 
@@ -197,17 +184,17 @@ def calc(yearRate, yearGDP, yearHousingSupply, homePrice):
     regression_result = ols(Rformula, data=info).fit()
     print(regression_result.summary())
 
-
-    #회귀분석 모델로 새로운 집값 예측
-    sample1 = info[info.columns.difference(['HomePrice','classify'])]
+    # 회귀분석 모델로 새로운 집값 예측
+    sample1 = info[info.columns.difference(['HomePrice', 'classify'])]
     sample1 = sample1[0:5][:]
     sample1_predict = regression_result.predict(sample1)
     print(sample1_predict)
 
     print(info[0:5]['HomePrice'])
 
-    #예측에 사용되는 임의 데이터
-    data = {"year": [2025, 2026], "rate": [1.55, 1.52], "GDP": [1924498.1, 1924428.7], "EconomicGrowth": [2.7,2.6],"Households": [3832, 3855],"Houses": [3732, 3739], "HousingSupply": [96,98]}
+    # 예측에 사용되는 임의 데이터
+    data = {"year": [2025, 2026], "rate": [1.55, 1.52], "GDP": [1924498.1, 1924428.7], "EconomicGrowth": [2.7, 2.6],
+            "Households": [3832, 3855], "Houses": [3732, 3739], "HousingSupply": [96, 98]}
 
     sample2 = pd.DataFrame(data, columns=sample1.columns)
     print(sample2)
@@ -215,44 +202,41 @@ def calc(yearRate, yearGDP, yearHousingSupply, homePrice):
     sample2_predict = regression_result.predict(sample2)
     print(sample2_predict)
 
-    return [info,regression_result]
+    return [info, regression_result]
 
 
-def visualize(info,regression_result):
+def visualize(info, regression_result):
     # 시각화
 
-    #부분 회귀 플롯
+    # 부분 회귀 플롯
     others = list(set(info.columns).difference(set(["HomePrice", "GDP"])))
     p, resids = sm.graphics.plot_partregress("HomePrice", "GDP", others, data=info, ret_coords=True)
     plt.show()
 
-    #모든 x값(경제성장률, 주택 보급률 , 금리 등...)에 대한 부분 회귀 플롯
+    # 모든 x값(경제성장률, 주택 보급률 , 금리 등...)에 대한 부분 회귀 플롯
     fig = plt.figure(figsize=(6, 8))
     sm.graphics.plot_partregress_grid(regression_result, fig=fig)
     plt.show()
 
 
-
 def main():
+    # 집값 [단위 : 백만] (ex 114 : 11.4억원)
+    homePrice = getHomePrice()
 
-    #집값 [단위 : 백만] (ex 114 : 11.4억원)
-    homePrice=getHomePrice()
-
-    #연도별 금리 [단위:%]
-    yearRate=getYearRate()
+    # 연도별 금리 [단위:%]
+    yearRate = getYearRate()
 
     # GDP,전년 대비 경제성장률 [단위 : 십억원, 전년동기 대비 %]
     yearGDP = getYearGDP()
 
-    #가구수(Households) , 주택수(Houses) , 주택 보급률(HousingSupply) [단위 : 천, 천, %]
-    yearHousingSupply =getYearHousingSupply()
-    
-    #09~13년 , 14~19 년 2개의 그룹으로 나눠서 t-검정 및 회귀분석
-    [info,regression_result]=calc(yearRate, yearGDP, yearHousingSupply, homePrice)
-    
-    #시각화
-    visualize(info,regression_result)
+    # 가구수(Households) , 주택수(Houses) , 주택 보급률(HousingSupply) [단위 : 천, 천, %]
+    yearHousingSupply = getYearHousingSupply()
 
+    # 09~13년 , 14~19 년 2개의 그룹으로 나눠서 t-검정 및 회귀분석
+    [info, regression_result] = calc(yearRate, yearGDP, yearHousingSupply, homePrice)
+
+    # 시각화
+    visualize(info, regression_result)
 
 
 if __name__ == '__main__':
