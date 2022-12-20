@@ -59,15 +59,21 @@ def convertToCsv():
     jsonData = getHomePriceFirst()
     for i in range(len(jsonData)):
         number=float(jsonData[i]['DT'])
-        homePrices.append(round(number))
-        homePrices.append(round(number))
-        homePrices.append(round(number))
+        # homePrices.append(round(number))
+        # homePrices.append(round(number))
+        # homePrices.append(round(number))
+        homePrices.append(number)
+        homePrices.append(number+0.1)
+        homePrices.append(number-0.1)
     jsonData = getHomePriceSecond()
     for i in range(len(jsonData)):
         number =float(jsonData[i]['DT'])
-        homePrices.append(round(number))
-        homePrices.append(round(number))
-        homePrices.append(round(number))
+        # homePrices.append(round(number))
+        # homePrices.append(round(number))
+        # homePrices.append(round(number))
+        homePrices.append(number)
+        homePrices.append(number+0.1)
+        homePrices.append(number-0.1)
 
     # 파일저장 2 : csv 파일
     columns = ["HomePrice"]
