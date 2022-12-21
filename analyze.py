@@ -71,8 +71,6 @@ def convertToCsv():
 
 
 def getHomePrice():
-    getHomePriceFirst()
-    getHomePriceSecond()
     convertToCsv()
     return pd.read_csv('homePrice.csv', encoding='cp949')
 
@@ -171,7 +169,12 @@ def calc(yearRate, yearGDP, yearHousingSupply, homePrice):
 
     info = pd.read_csv('info.csv', encoding='cp949')
 
+    #전체 칼럼에 대한 기술통계
     print(info.describe())
+
+    #그룹별 각 칼럼에 대한 기술통계
+    print(info.groupby('classify')['HomePrice'].describe())
+
 
     # t-검정을 위한 그룹 분류
     firstClassify = info.loc[info['classify'] == '09~13', 'HomePrice']
